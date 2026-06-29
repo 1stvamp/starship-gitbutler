@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # starship GitButler-aware branch segment. Always exits 0.
 
-BUTLER_SYMBOL="🦋"
+BUTLER_SYMBOL="🎩"
 GIT_SYMBOL="🌿"
 
 # Reads `but status --format json` on stdin, prints the butler segment.
