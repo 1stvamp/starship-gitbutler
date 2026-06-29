@@ -1,6 +1,6 @@
 # starship-gitbutler
 
-A starship prompt segment that knows about GitButler. In a butler repo it shows the virtual branches (stacks) you've actually got applied; everywhere else it acts like the normal git branch.
+A [starship](https://starship.rs) prompt segment that knows about [GitButler](https://gitbutler.com). In a butler repo it shows the virtual branches (stacks) you've actually got applied; everywhere else it acts like the normal git branch.
 
 Why: turn a repo into a GitButler project and you get parked on a `gitbutler/workspace` branch, so starship's built-in `git_branch` just prints `gitbutler/workspace`. Useless. This reads the real picture out of the `but` cli instead.
 
