@@ -7,6 +7,8 @@ source "$DIR/gitbutler-branch.sh"
 fail=0
 check() { if [ "$2" = "$3" ]; then echo "ok   - $1"; else echo "FAIL - $1: expected [$2] got [$3]"; fail=1; fi; }
 
+export GIT_TEMPLATE_DIR="$(mktemp -d)"
+
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 cd "$tmp"
 git init -q -b main .
