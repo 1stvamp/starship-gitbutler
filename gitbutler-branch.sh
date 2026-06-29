@@ -48,7 +48,7 @@ cached_butler() {
   key="$(printf '%s' "$gbdir" | cksum | cut -d' ' -f1)"
   cache_file="$cache_root/$key"
 
-  if [ -n "$mtime" ] && IFS= read -r cached_mtime < "$cache_file" 2>/dev/null; then
+  if [ -n "$mtime" ] && { IFS= read -r cached_mtime < "$cache_file"; } 2>/dev/null; then
     if [ "$cached_mtime" = "$mtime" ]; then
       cached_val="$(sed '1d' "$cache_file" 2>/dev/null)"
       printf '%s' "$cached_val"
@@ -58,7 +58,7 @@ cached_butler() {
 
   val="$(but status --format json 2>/dev/null | render_butler)"
   if [ -n "$mtime" ]; then
-    mkdir -p "$cache_root" 2>/dev/null && printf '%s\n%s' "$mtime" "$val" > "$cache_file" 2>/dev/null
+    { mkdir -p "$cache_root" && printf '%s\n%s' "$mtime" "$val" > "$cache_file"; } 2>/dev/null
   fi
   printf '%s' "$val"
 }
