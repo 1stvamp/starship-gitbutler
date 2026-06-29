@@ -8,7 +8,7 @@ GIT_SYMBOL="🌿"
 render_butler() {
   local out
   out="$(jq -r '
-    [ .stacks[].branches[]
+    [ .stacks[]? | .branches[]? | select(.name != null)
       | .name + (if (.commits|length) > 0
                  then " ↑" + (.commits|length|tostring)
                  else "" end)
@@ -38,13 +38,24 @@ render_git() {
   printf '%s %s' "$GIT_SYMBOL" "$name"
 }
 
+# Runs `but status --format json`, bounded by a timeout so a hung `but` can't
+# stall the prompt. Override this function in tests to stub `but`.
+but_status_json() {
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "${BUT_TIMEOUT:-2}" but status --format json
+  else
+    but status --format json
+  fi
+}
+
 # Prints the butler segment for the given gitbutler dir, caching on REFRESH mtime.
 cached_butler() {
   local gbdir="$1"
   local refresh="$gbdir/REFRESH"
   local mtime cache_root key cache_file cached_mtime cached_val val
 
-  mtime="$(stat -c %Y "$refresh" 2>/dev/null)"
+  # GNU coreutils uses `stat -c %Y`; BSD/macOS uses `stat -f %m`.
+  mtime="$(stat -c %Y "$refresh" 2>/dev/null || stat -f %m "$refresh" 2>/dev/null)"
   cache_root="${XDG_CACHE_HOME:-$HOME/.cache}/starship-gitbutler"
   key="$(printf '%s' "$gbdir" | cksum | cut -d' ' -f1)"
   cache_file="$cache_root/$key"
@@ -57,7 +68,7 @@ cached_butler() {
     fi
   fi
 
-  val="$(but status --format json 2>/dev/null | render_butler)"
+  val="$(but_status_json 2>/dev/null | render_butler)"
   if [ -n "$mtime" ]; then
     { mkdir -p "$cache_root" && printf '%s\n%s' "$mtime" "$val" > "$cache_file"; } 2>/dev/null
   fi
