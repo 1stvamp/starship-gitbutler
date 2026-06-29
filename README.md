@@ -4,11 +4,7 @@ A [starship](https://starship.rs) prompt segment that knows about [GitButler](ht
 
 Why: turn a repo into a GitButler project and you get parked on a `gitbutler/workspace` branch, so starship's built-in `git_branch` just prints `gitbutler/workspace`, which is a bit crap. This reads the real picture out of the `but` cli instead.
 
-```
-🎩 my-feature ↑3 | hotfix-login ↑1     # butler repo, two stacks applied
-🎩 workspace                            # butler repo, nothing applied yet
-🌿 main                                 # ordinary git repo
-```
+![starship prompt in a GitButler repo with two stacks applied (🎩 my-feature ↑3 | hotfix-login ↑1), a butler repo with nothing applied (🎩 workspace), and an ordinary git repo (🌿 main)](images/prompt.png)
 
 🎩 is the butler segment, 🌿 is plain git. Both sit at the top of the script if you want to change them.
 
