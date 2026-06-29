@@ -34,4 +34,12 @@ touch -d "+1 second" "$gbdir/REFRESH"
 cached_butler "$gbdir" >/dev/null
 check "recompute-after-bump" "2" "$(cat "$stubcount")"
 
+# Cache failure -> degraded to direct compute.
+chmod 000 "$XDG_CACHE_HOME"
+touch -d "+2 seconds" "$gbdir/REFRESH"
+rD="$(cached_butler "$gbdir")"
+check "degraded-value" "🦋 my-feature ↑1" "$rD"
+check "degraded-direct-compute" "3" "$(cat "$stubcount")"
+chmod 755 "$XDG_CACHE_HOME"
+
 exit $fail
