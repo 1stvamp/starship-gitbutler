@@ -37,10 +37,38 @@ render_git() {
   printf '%s %s' "$GIT_SYMBOL" "$name"
 }
 
+# Prints the butler segment for the given gitbutler dir, caching on REFRESH mtime.
+cached_butler() {
+  local gbdir="$1"
+  local refresh="$gbdir/REFRESH"
+  local mtime cache_root key cache_file cached_mtime cached_val val
+
+  mtime="$(stat -c %Y "$refresh" 2>/dev/null)"
+  cache_root="${XDG_CACHE_HOME:-$HOME/.cache}/starship-gitbutler"
+  key="$(printf '%s' "$gbdir" | cksum | cut -d' ' -f1)"
+  cache_file="$cache_root/$key"
+
+  if [ -n "$mtime" ] && IFS= read -r cached_mtime < "$cache_file" 2>/dev/null; then
+    if [ "$cached_mtime" = "$mtime" ]; then
+      cached_val="$(sed '1d' "$cache_file" 2>/dev/null)"
+      printf '%s' "$cached_val"
+      return 0
+    fi
+  fi
+
+  val="$(but status --format json 2>/dev/null | render_butler)"
+  if [ -n "$mtime" ]; then
+    mkdir -p "$cache_root" 2>/dev/null && printf '%s\n%s' "$mtime" "$val" > "$cache_file" 2>/dev/null
+  fi
+  printf '%s' "$val"
+}
+
 main() {
   git rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
-  if [ -n "$(gitbutler_dir)" ]; then
-    but status --format json 2>/dev/null | render_butler
+  local gb
+  gb="$(gitbutler_dir)"
+  if [ -n "$gb" ]; then
+    cached_butler "$gb"
   else
     render_git
   fi
