@@ -10,7 +10,7 @@ Why: turn a repo into a GitButler project and you get parked on a `gitbutler/wor
 🌿 main                                 # ordinary git repo
 ```
 
-🎩 is GitButler (their mark is a butler bowtie, not the butterfly I first reached for). 🌿 is plain git. Both sit at the top of the script if you want to change them.
+🎩 is the butler segment, 🌿 is plain git. Both sit at the top of the script if you want to change them.
 
 ## How it works
 
