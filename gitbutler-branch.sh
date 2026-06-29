@@ -25,7 +25,8 @@ render_butler() {
 gitbutler_dir() {
   local d
   d="$(git rev-parse --git-path gitbutler 2>/dev/null)" || return 0
-  if [ -d "$d" ]; then printf '%s' "$d"; fi
+  [ -d "$d" ] || return 0
+  ( cd "$d" && pwd )
 }
 
 # Prints `🌿 <branch>` for a plain git repo (short sha when detached).
