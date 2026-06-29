@@ -13,7 +13,9 @@ stubcount="$tmp/count"; echo 0 > "$stubcount"
 source "$DIR/gitbutler-branch.sh"
 
 # Override the status fetcher (above the `timeout but` wrapper) with a counter
-# stub so we can observe when a recompute actually happens.
+# stub so we can observe when a recompute actually happens. Invoked indirectly
+# by the sourced cached_butler, so shellcheck can't see the call site.
+# shellcheck disable=SC2329
 but_status_json() {
   local n; n="$(cat "$stubcount")"; n=$((n+1)); echo "$n" > "$stubcount"
   cat "$DIR/tests/fixtures/one.json"
