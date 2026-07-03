@@ -4,9 +4,11 @@ A [starship](https://starship.rs) prompt segment that knows about [GitButler](ht
 
 Why: turn a repo into a GitButler project and you get parked on a `gitbutler/workspace` branch, so starship's built-in `git_branch` just prints `gitbutler/workspace`, which is a bit crap. This reads the real picture out of the `but` cli instead.
 
-![starship prompt in a GitButler repo with two stacks applied (🎩 my-feature ↑3 | hotfix-login ↑1), a butler repo with nothing applied (🎩 workspace), and an ordinary git repo (🌿 main)](images/prompt.png)
+![starship prompt in a GitButler repo with two stacks applied (⧓ my-feature ↑3 | hotfix-login ↑1), a butler repo with nothing applied (⧓ workspace), and an ordinary git repo (🌿 main)](images/prompt.png)
 
-🎩 is the butler segment, 🌿 is plain git. Both sit at the top of the script if you want to change them.
+⧓ is the butler segment, 🌿 is plain git.
+
+The ⧓ is blue: light blue on a dark background, dark blue on a light one. It works that out once per session by asking the terminal for its background colour (OSC 11), then caches it. No answer means it assumes dark; force it with `GITBUTLER_PROMPT_MODE=light` or `dark`. Symbols and colours live at the top of the script.
 
 ## How it works
 
@@ -14,7 +16,7 @@ starship is one compiled binary with no plugin system, so this isn't a fork of t
 
 The script decides what to show:
 
-- butler repo (there's a `.git/gitbutler` dir): read the applied stacks from `but status --format json`, render `🎩 name ↑N` per branch, joined with ` | `.
+- butler repo (there's a `.git/gitbutler` dir): read the applied stacks from `but status --format json`, render `⧓ name ↑N` per branch, joined with ` | `.
 - ordinary repo: fall back to `git branch`, e.g. `🌿 main` (short sha when detached).
 - not a repo: print nothing, so the segment disappears.
 
@@ -26,7 +28,7 @@ It always exits 0 and never prints a half-formed segment, so a broken `but`, dod
 
 While REFRESH is unchanged you get the cached string back for nothing; when it moves, the script recomputes. Cache lives under `${XDG_CACHE_HOME:-~/.cache}/starship-gitbutler`, keyed on the absolute path to the gitbutler dir, so moving between subdirectories of a repo still hits the same entry.
 
-There's a 2s timeout around `but` too (override with `BUT_TIMEOUT`). If `but` ever hangs you get a quick `🎩 workspace` rather than a stalled prompt.
+There's a 2s timeout around `but` too (override with `BUT_TIMEOUT`). If `but` ever hangs you get a quick `⧓ workspace` rather than a stalled prompt.
 
 ## Requirements
 
@@ -54,8 +56,7 @@ Then in `~/.config/starship.toml`: replace `$git_branch` in your `format` with `
 command = "~/.config/starship/gitbutler-branch.sh"
 when = true
 shell = ["bash", "--noprofile", "--norc"]
-format = "[$output]($style) "
-style = "grey"
+format = "$output "
 disabled = false
 ```
 

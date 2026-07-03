@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 # starship GitButler-aware branch segment. Always exits 0.
 
-BUTLER_SYMBOL="🎩"
+BUTLER_SYMBOL="⧓"
 GIT_SYMBOL="🌿"
 
-# Reads `but status --format json` on stdin, prints the butler segment.
+# Colour codes. Empty by default so sourced tests see plain text; main() fills
+# them in for the live prompt (see setup_colors).
+SYM_COLOR=""
+TEXT_COLOR=""
+RESET=""
+
+# Reads `but status --format json` on stdin, prints the butler segment:
+# a coloured ⧓ followed by the applied stacks (or "workspace" when none).
 render_butler() {
   local out
   out="$(jq -r '
@@ -14,11 +21,8 @@ render_butler() {
                  else "" end)
     ] | join(" | ")
   ' 2>/dev/null)"
-  if [ -z "$out" ]; then
-    printf '%s workspace' "$BUTLER_SYMBOL"
-  else
-    printf '%s %s' "$BUTLER_SYMBOL" "$out"
-  fi
+  [ -z "$out" ] && out="workspace"
+  printf '%s%s%s %s%s%s' "$SYM_COLOR" "$BUTLER_SYMBOL" "$RESET" "$TEXT_COLOR" "$out" "$RESET"
 }
 
 # Prints the gitbutler data dir for the current repo if present, else nothing.
@@ -35,7 +39,65 @@ render_git() {
   name="$(git branch --show-current 2>/dev/null)"
   [ -z "$name" ] && name="$(git rev-parse --short HEAD 2>/dev/null)"
   [ -z "$name" ] && return 0
-  printf '%s %s' "$GIT_SYMBOL" "$name"
+  printf '%s%s %s%s' "$TEXT_COLOR" "$GIT_SYMBOL" "$name" "$RESET"
+}
+
+# Queries the terminal background via OSC 11 and prints "dark" or "light" based
+# on its luminance. Prints nothing if the terminal doesn't answer. Reads/writes
+# the controlling terminal directly so it never touches the captured stdout.
+query_bg_mode() {
+  [ -e /dev/tty ] || return 0
+  local old resp hex r g b lum
+  old="$(stty -g < /dev/tty 2>/dev/null)" || return 0
+  stty raw -echo < /dev/tty 2>/dev/null
+  printf '\e]11;?\a' > /dev/tty 2>/dev/null
+  IFS= read -r -d '' -t 0.1 resp < /dev/tty 2>/dev/null
+  stty "$old" < /dev/tty 2>/dev/null
+  case "$resp" in
+    *rgb:*) ;;
+    *) return 0 ;;
+  esac
+  hex="${resp#*rgb:}"
+  r="${hex%%/*}"; hex="${hex#*/}"
+  g="${hex%%/*}"; hex="${hex#*/}"
+  b="${hex%%[!0-9a-fA-F]*}"
+  r=$((16#${r:-0})); g=$((16#${g:-0})); b=$((16#${b:-0}))
+  [ "$r" -gt 255 ] && r=$((r>>8))
+  [ "$g" -gt 255 ] && g=$((g>>8))
+  [ "$b" -gt 255 ] && b=$((b>>8))
+  lum=$(( (r*299 + g*587 + b*114) / 1000 ))
+  if [ "$lum" -lt 128 ]; then printf 'dark'; else printf 'light'; fi
+}
+
+# Resolves the terminal background mode, cached per-tty for the session. An
+# explicit GITBUTLER_PROMPT_MODE (light|dark) wins and skips the query.
+detect_bg_mode() {
+  case "${GITBUTLER_PROMPT_MODE:-}" in
+    light|dark) printf '%s' "$GITBUTLER_PROMPT_MODE"; return 0 ;;
+  esac
+  local root tty_id cache mode
+  root="${XDG_CACHE_HOME:-$HOME/.cache}/starship-gitbutler"
+  tty_id="$(ps -o tty= -p $$ 2>/dev/null | tr -d ' /')"
+  [ -z "$tty_id" ] && tty_id="unknown"
+  cache="$root/mode-$tty_id"
+  if { IFS= read -r mode < "$cache"; } 2>/dev/null && [ -n "$mode" ]; then
+    printf '%s' "$mode"; return 0
+  fi
+  mode="$(query_bg_mode)"
+  [ -z "$mode" ] && mode="dark"
+  { mkdir -p "$root" && printf '%s' "$mode" > "$cache"; } 2>/dev/null
+  printf '%s' "$mode"
+}
+
+# Fills the colour globals: grey text, and a blue ⧓ that is light on a dark
+# background and dark on a light one.
+setup_colors() {
+  RESET=$'\e[0m'
+  TEXT_COLOR=$'\e[38;5;246m'
+  case "$(detect_bg_mode)" in
+    light) SYM_COLOR=$'\e[38;2;29;78;216m' ;;
+    *)     SYM_COLOR=$'\e[38;2;96;165;250m' ;;
+  esac
 }
 
 # Runs `but status --format json`, bounded by a timeout so a hung `but` can't
@@ -77,6 +139,7 @@ cached_butler() {
 
 main() {
   git rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
+  setup_colors
   local gb
   gb="$(gitbutler_dir)"
   if [ -n "$gb" ]; then

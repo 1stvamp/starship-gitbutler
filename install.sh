@@ -20,7 +20,6 @@ Add to ~/.config/starship.toml:
 command = "~/.config/starship/gitbutler-branch.sh"
 when = true
 shell = ["bash", "--noprofile", "--norc"]
-format = "[$output]($style) "
-style = "grey"
+format = "$output "
 disabled = false
 SNIP
