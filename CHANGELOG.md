@@ -2,6 +2,12 @@
 
 Notable changes to this project. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [semver](https://semver.org/).
 
+## [1.1.1] - 2026-09-08
+
+### Fixed
+- A repo the GitButler app had merely opened once showed `⧓ workspace` forever. The app leaves a `.git/gitbutler` dir behind when it's done, and the dir on its own was enough to pick the butler renderer. A repo now counts as managed only when HEAD is also parked on a `gitbutler/*` branch, which is what `but status` itself insists on, so plain repos get their `🌿 <branch>` back.
+- The cache keys on the mtime of `.git/gitbutler/REFRESH`, and a repo with no REFRESH file gave it no key at all, so nothing was read or written and every redraw shelled out to `but`. Those entries now fall back to a write time that expires after 5 seconds, overridable with `BUT_CACHE_TTL`.
+
 ## [1.1.0] - 2026-07-03
 
 ### Changed
@@ -19,5 +25,6 @@ Notable changes to this project. The format follows [Keep a Changelog](https://k
 - REFRESH-mtime cache keyed on the absolute gitbutler dir path, plus a `BUT_TIMEOUT` guard so a hung `but` can't stall the prompt.
 - `install.sh`, a plain-bash test suite, and an Apache 2.0 license.
 
+[1.1.1]: https://github.com/1stvamp/starship-gitbutler/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/1stvamp/starship-gitbutler/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/1stvamp/starship-gitbutler/releases/tag/v1.0.0
