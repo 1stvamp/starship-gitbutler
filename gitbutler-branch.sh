@@ -33,6 +33,17 @@ gitbutler_dir() {
   ( cd "$d" && pwd )
 }
 
+# True when GitButler has taken over the checkout, i.e. HEAD is parked on one of
+# its workspace branches. That's `but`'s own precondition: off such a branch it
+# refuses to report ("Not currently on a gitbutler/* branch"), so a leftover
+# data dir from a repo the app merely opened once doesn't count as managed.
+in_butler_workspace() {
+  case "$(git symbolic-ref --quiet HEAD 2>/dev/null)" in
+    refs/heads/gitbutler/*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 # Prints `🌿 <branch>` for a plain git repo (short sha when detached).
 render_git() {
   local name
@@ -142,7 +153,7 @@ main() {
   setup_colors
   local gb
   gb="$(gitbutler_dir)"
-  if [ -n "$gb" ]; then
+  if [ -n "$gb" ] && in_butler_workspace; then
     cached_butler "$gb"
   else
     render_git
