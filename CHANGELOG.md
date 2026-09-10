@@ -2,7 +2,7 @@
 
 Notable changes to this project. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [semver](https://semver.org/).
 
-## [1.1.1] - 2026-09-08
+## [1.1.1] - 2026-09-10
 
 ### Fixed
 - A repo the GitButler app had merely opened once showed `⧓ workspace` forever. The app leaves a `.git/gitbutler` dir behind when it's done, and the dir on its own was enough to pick the butler renderer. A repo now counts as managed only when HEAD is also parked on a `gitbutler/*` branch, which is what `but status` itself insists on, so plain repos get their `🌿 <branch>` back.
