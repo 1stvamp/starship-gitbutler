@@ -16,9 +16,11 @@ starship is one compiled binary with no plugin system, so this isn't a fork of t
 
 The script decides what to show:
 
-- butler repo (there's a `.git/gitbutler` dir): read the applied stacks from `but status --format json`, render `⧓ name ↑N` per branch, joined with ` | `.
+- butler repo (there's a `.git/gitbutler` dir *and* HEAD is on a `gitbutler/*` branch): read the applied stacks from `but status --format json`, render `⧓ name ↑N` per branch, joined with ` | `.
 - ordinary repo: fall back to `git branch`, e.g. `🌿 main` (short sha when detached).
 - not a repo: print nothing, so the segment disappears.
+
+**Note**: both halves of that first test matter. Open a repo in the GitButler app once and it leaves a `.git/gitbutler` dir there for good, so the dir on its own tells you nothing about whether the repo is managed. HEAD parked on `gitbutler/workspace` is what GitButler does when it takes over a checkout, and it's what the `but` cli itself insists on: off that branch `but status` won't answer at all, it just tells you you're "Not currently on a gitbutler/* branch". Unapplying every branch leaves you on the workspace branch, so you keep the ⧓ and it reads `⧓ workspace`.
 
 It always exits 0 and never prints a half-formed segment, so a broken `but`, dodgy json or a missing cache file can't take the prompt down with it.
 
@@ -27,6 +29,8 @@ It always exits 0 and never prints a half-formed segment, so a broken `but`, dod
 `but status` is about 200ms, too slow to run on every redraw. So the script caches, keyed on the mtime of `.git/gitbutler/REFRESH` (the file gitbutler bumps whenever the workspace changes).
 
 While REFRESH is unchanged you get the cached string back for nothing; when it moves, the script recomputes. Cache lives under `${XDG_CACHE_HOME:-~/.cache}/starship-gitbutler`, keyed on the absolute path to the gitbutler dir, so moving between subdirectories of a repo still hits the same entry.
+
+Some butler repos have no REFRESH file yet, so there's nothing to key on. Those get a write time stamped on the entry instead, expiring after 5 seconds (`BUT_CACHE_TTL` overrides it), which holds `but` down to one call per window rather than one per redraw.
 
 There's a 2s timeout around `but` too (override with `BUT_TIMEOUT`). If `but` ever hangs you get a quick `⧓ workspace` rather than a stalled prompt.
 
@@ -70,7 +74,7 @@ Plain bash, no framework, just jq:
 bash tests/run.sh
 ```
 
-Covers: stack rendering against captured `but` json (none, one, several, malformed, partial), the git fallback and detached HEAD, repo detection, and the cache (hit, miss, recompute on REFRESH, and degrading to a direct call when the cache dir is unwritable).
+Covers: stack rendering against captured `but` json (none, one, several, malformed, partial), the git fallback and detached HEAD, which renderer gets picked (managed workspace, leftover dir on a normal branch, workspace branch with no dir), and the cache (hit, miss, recompute on REFRESH, the TTL fallback with no REFRESH, and degrading to a direct call when the cache dir is unwritable).
 
 ## License
 

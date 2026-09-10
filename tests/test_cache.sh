@@ -46,4 +46,29 @@ check "degraded-value" "⧓ my-feature ↑1" "$rD"
 check "degraded-direct-compute" "3" "$(cat "$stubcount")"
 chmod 755 "$XDG_CACHE_HOME"
 
+# A repo the app hasn't stamped with a REFRESH file: the cache must still work,
+# bounded by a TTL, rather than shelling out on every render.
+gbdir2="$tmp/gitbutler-noref"; mkdir -p "$gbdir2"
+echo 0 > "$stubcount"
+
+rN1="$(cached_butler "$gbdir2")"
+check "no-refresh-value" "⧓ my-feature ↑1" "$rN1"
+check "no-refresh-computed" "1" "$(cat "$stubcount")"
+
+rN2="$(cached_butler "$gbdir2")"
+check "no-refresh-cached-value" "⧓ my-feature ↑1" "$rN2"
+check "no-refresh-no-recompute" "1" "$(cat "$stubcount")"
+
+# A zero TTL expires the entry immediately, so the fallback still recomputes.
+BUT_CACHE_TTL=0 cached_butler "$gbdir2" >/dev/null
+check "no-refresh-ttl-expiry" "2" "$(cat "$stubcount")"
+
+# REFRESH appearing later invalidates the TTL-stamped entry, then keys the
+# cache as usual. `sleep 1` keeps the new mtime clear of the stamp's second.
+sleep 1; : > "$gbdir2/REFRESH"
+cached_butler "$gbdir2" >/dev/null
+check "refresh-appearing-invalidates" "3" "$(cat "$stubcount")"
+cached_butler "$gbdir2" >/dev/null
+check "refresh-then-cached" "3" "$(cat "$stubcount")"
+
 exit $fail

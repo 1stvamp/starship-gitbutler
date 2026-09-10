@@ -33,6 +33,17 @@ gitbutler_dir() {
   ( cd "$d" && pwd )
 }
 
+# True when GitButler has taken over the checkout, i.e. HEAD is parked on one of
+# its workspace branches. That's `but`'s own precondition: off such a branch it
+# refuses to report ("Not currently on a gitbutler/* branch"), so a leftover
+# data dir from a repo the app merely opened once doesn't count as managed.
+in_butler_workspace() {
+  case "$(git symbolic-ref --quiet HEAD 2>/dev/null)" in
+    refs/heads/gitbutler/*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 # Prints `🌿 <branch>` for a plain git repo (short sha when detached).
 render_git() {
   local name
@@ -110,20 +121,37 @@ but_status_json() {
   fi
 }
 
-# Prints the butler segment for the given gitbutler dir, caching on REFRESH mtime.
+# True when a cached entry stamped $1 is still good. With a REFRESH mtime ($2)
+# the stamp must match it exactly; without one there's nothing to invalidate on,
+# so the stamp is a write time ($3 is now) and expires after BUT_CACHE_TTL.
+cache_fresh() {
+  local cached="$1" mtime="$2" now="$3" age
+  case "$cached" in ''|*[!0-9]*) return 1 ;; esac
+  if [ -n "$mtime" ]; then
+    [ "$cached" = "$mtime" ]
+  else
+    [ -n "$now" ] || return 1
+    age=$((now - cached))
+    [ "$age" -ge 0 ] && [ "$age" -lt "${BUT_CACHE_TTL:-5}" ]
+  fi
+}
+
+# Prints the butler segment for the given gitbutler dir, caching on REFRESH
+# mtime, or on a TTL when the repo has no REFRESH file.
 cached_butler() {
   local gbdir="$1"
   local refresh="$gbdir/REFRESH"
-  local mtime cache_root key cache_file cached_mtime cached_val val
+  local mtime now cache_root key cache_file cached_stamp cached_val val
 
   # GNU coreutils uses `stat -c %Y`; BSD/macOS uses `stat -f %m`.
   mtime="$(stat -c %Y "$refresh" 2>/dev/null || stat -f %m "$refresh" 2>/dev/null)"
+  now="$(date +%s 2>/dev/null)"
   cache_root="${XDG_CACHE_HOME:-$HOME/.cache}/starship-gitbutler"
   key="$(printf '%s' "$gbdir" | cksum | cut -d' ' -f1)"
   cache_file="$cache_root/$key"
 
-  if [ -n "$mtime" ] && { IFS= read -r cached_mtime < "$cache_file"; } 2>/dev/null; then
-    if [ "$cached_mtime" = "$mtime" ]; then
+  if { IFS= read -r cached_stamp < "$cache_file"; } 2>/dev/null; then
+    if cache_fresh "$cached_stamp" "$mtime" "$now"; then
       cached_val="$(sed '1d' "$cache_file" 2>/dev/null)"
       printf '%s' "$cached_val"
       return 0
@@ -131,8 +159,8 @@ cached_butler() {
   fi
 
   val="$(but_status_json 2>/dev/null | render_butler)"
-  if [ -n "$mtime" ]; then
-    { mkdir -p "$cache_root" && printf '%s\n%s' "$mtime" "$val" > "$cache_file"; } 2>/dev/null
+  if [ -n "${mtime:-$now}" ]; then
+    { mkdir -p "$cache_root" && printf '%s\n%s' "${mtime:-$now}" "$val" > "$cache_file"; } 2>/dev/null
   fi
   printf '%s' "$val"
 }
@@ -142,7 +170,7 @@ main() {
   setup_colors
   local gb
   gb="$(gitbutler_dir)"
-  if [ -n "$gb" ]; then
+  if [ -n "$gb" ] && in_butler_workspace; then
     cached_butler "$gb"
   else
     render_git
