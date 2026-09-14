@@ -71,4 +71,30 @@ check "refresh-appearing-invalidates" "3" "$(cat "$stubcount")"
 cached_butler "$gbdir2" >/dev/null
 check "refresh-then-cached" "3" "$(cat "$stubcount")"
 
+# A failing `but` renders the error marker and is deliberately not cached, so
+# the segment recovers as soon as `but` works again rather than serving a stale
+# error until REFRESH moves.
+gbdir3="$tmp/gitbutler-failing"; mkdir -p "$gbdir3"
+: > "$gbdir3/REFRESH"
+echo 0 > "$stubcount"
+# shellcheck disable=SC2329,SC2317
+but_status_json() {
+  local n; n="$(cat "$stubcount")"; n=$((n+1)); echo "$n" > "$stubcount"
+  return 2
+}
+
+rE1="$(cached_butler "$gbdir3")"
+check "error-value" "⧓ ?" "$rE1"
+check "error-computed" "1" "$(cat "$stubcount")"
+cached_butler "$gbdir3" >/dev/null
+check "error-not-cached" "2" "$(cat "$stubcount")"
+
+# `but` starts working again: no stale error to clear out first.
+# shellcheck disable=SC2329,SC2317
+but_status_json() {
+  local n; n="$(cat "$stubcount")"; n=$((n+1)); echo "$n" > "$stubcount"
+  cat "$DIR/tests/fixtures/one.json"
+}
+check "recovers-after-error" "⧓ my-feature ↑1" "$(cached_butler "$gbdir3")"
+
 exit $fail

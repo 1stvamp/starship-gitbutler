@@ -22,7 +22,7 @@ The script decides what to show:
 
 **Note**: both halves of that first test matter. Open a repo in the GitButler app once and it leaves a `.git/gitbutler` dir there for good, so the dir on its own tells you nothing about whether the repo is managed. HEAD parked on `gitbutler/workspace` is what GitButler does when it takes over a checkout, and it's what the `but` cli itself insists on: off that branch `but status` won't answer at all, it just tells you you're "Not currently on a gitbutler/* branch". Unapplying every branch leaves you on the workspace branch, so you keep the ⧓ and it reads `⧓ workspace`.
 
-It always exits 0 and never prints a half-formed segment, so a broken `but`, dodgy json or a missing cache file can't take the prompt down with it.
+It always exits 0 and never prints a half-formed segment, so a broken `but`, dodgy json or a missing cache file can't take the prompt down with it. A failed read gets you `⧓ ?`. That's kept separate from `⧓ workspace` on purpose: an empty workspace is a real answer, and a `but` that fell over shouldn't be able to pass itself off as one (which is exactly what happened when the cli renamed its json flag.. the segment read as an ordinary empty workspace for weeks). Failed reads aren't cached, so the segment comes back on its own once `but` does.
 
 ## Caching
 
@@ -32,7 +32,7 @@ While REFRESH is unchanged you get the cached string back for nothing; when it m
 
 Some butler repos have no REFRESH file yet, so there's nothing to key on. Those get a write time stamped on the entry instead, expiring after 5 seconds (`BUT_CACHE_TTL` overrides it), which holds `but` down to one call per window rather than one per redraw.
 
-There's a 2s timeout around `but` too (override with `BUT_TIMEOUT`). If `but` ever hangs you get a quick `⧓ workspace` rather than a stalled prompt.
+There's a 2s timeout around `but` too (override with `BUT_TIMEOUT`). If `but` ever hangs you get `⧓ ?` after 2s rather than a stalled prompt. Since failed reads aren't cached, a `but` that hangs every time costs you that 2s on every redraw, so the marker is there to tell you to go and fix it.
 
 ## Requirements
 
@@ -41,7 +41,7 @@ There's a 2s timeout around `but` too (override with `BUT_TIMEOUT`). If `but` ev
 - jq
 - git, bash
 
-`but` 0.22.0 renamed the flag this reads the workspace through, `--format json` became `--json`, and there's no version that takes both. On anything older the read fails.
+`but` 0.22.0 renamed the flag this reads the workspace through, `--format json` became `--json`, and there's no version that takes both. On anything older you'll get `⧓ ?`.
 
 It uses GNU `stat` for the cache mtime and falls back to BSD `stat -f %m`, so linux and macos both work.
 

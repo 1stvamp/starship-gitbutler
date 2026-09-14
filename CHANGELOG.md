@@ -7,11 +7,15 @@ Notable changes to this project. The format follows [Keep a Changelog](https://k
 ### Fixed
 - `but` 0.22.0 renamed the status json flag from `--format json` to `--json`, so the call failed outright and every butler repo read `⧓ workspace`. Nothing announced it: the script sends `but`'s stderr to /dev/null and treats empty output as an unapplied workspace, which is the same thing it prints when you genuinely have no branches applied. The script asks for `--json` now.
 
+### Changed
+- A failed read renders `⧓ ?` instead of `⧓ workspace`, so a `but` that errored, timed out or returned json we can't parse stops looking like a managed repo with nothing applied. `⧓ workspace` now means only what it says.
+- Failed reads aren't written to the cache. Keyed on REFRESH mtime an error would have stuck around until the workspace next changed, well beyond whatever broke `but`, so the segment now recovers by itself on the next redraw.
+
 ### Added
 - A test that runs the arguments we hand `but` past the installed cli, so a renamed flag fails the suite rather than quietly degrading the segment. It skips when `but` isn't on PATH, which is the case in CI.
 
 ### Requirements
-- `but` 0.22.0 or newer. There's no release that accepts both spellings of the flag, so older clis fail the read.
+- `but` 0.22.0 or newer. There's no release that accepts both spellings of the flag, so older clis render `⧓ ?`.
 
 ## [1.1.1] - 2026-09-10
 
