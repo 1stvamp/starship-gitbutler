@@ -3,6 +3,9 @@
 
 BUTLER_SYMBOL="⧓"
 GIT_SYMBOL="🌿"
+# Shown in place of the stack list when `but` couldn't be read. Distinct from
+# "workspace", which is a real answer: a managed repo with nothing applied.
+ERROR_TEXT="?"
 
 # Colour codes. Empty by default so sourced tests see plain text; main() fills
 # them in for the live prompt (see setup_colors).
@@ -10,10 +13,12 @@ SYM_COLOR=""
 TEXT_COLOR=""
 RESET=""
 
-# Reads `but status --format json` on stdin, prints the butler segment:
-# a coloured ⧓ followed by the applied stacks (or "workspace" when none).
+# Reads `but status --json` on stdin, prints the butler segment: a coloured ⧓
+# followed by the applied stacks. $1 is but's exit status, assumed 0 when
+# omitted. A non-zero status or json jq can't parse renders ERROR_TEXT; only a
+# clean read with nothing applied renders "workspace".
 render_butler() {
-  local out
+  local status="${1:-0}" out rc
   out="$(jq -r '
     [ .stacks[]? | .branches[]? | select(.name != null)
       | .name + (if (.commits|length) > 0
@@ -21,7 +26,12 @@ render_butler() {
                  else "" end)
     ] | join(" | ")
   ' 2>/dev/null)"
-  [ -z "$out" ] && out="workspace"
+  rc=$?
+  if [ "$status" -ne 0 ] || [ "$rc" -ne 0 ]; then
+    out="$ERROR_TEXT"
+  elif [ -z "$out" ]; then
+    out="workspace"
+  fi
   printf '%s%s%s %s%s%s' "$SYM_COLOR" "$BUTLER_SYMBOL" "$RESET" "$TEXT_COLOR" "$out" "$RESET"
 }
 
@@ -111,13 +121,13 @@ setup_colors() {
   esac
 }
 
-# Runs `but status --format json`, bounded by a timeout so a hung `but` can't
+# Runs `but status --json`, bounded by a timeout so a hung `but` can't
 # stall the prompt. Override this function in tests to stub `but`.
 but_status_json() {
   if command -v timeout >/dev/null 2>&1; then
-    timeout "${BUT_TIMEOUT:-2}" but status --format json
+    timeout "${BUT_TIMEOUT:-2}" but status --json
   else
-    but status --format json
+    but status --json
   fi
 }
 
@@ -158,8 +168,14 @@ cached_butler() {
     fi
   fi
 
-  val="$(but_status_json 2>/dev/null | render_butler)"
-  if [ -n "${mtime:-$now}" ]; then
+  local json rc
+  json="$(but_status_json 2>/dev/null)"
+  rc=$?
+  val="$(printf '%s' "$json" | render_butler "$rc")"
+
+  # A failed read isn't cached: keyed on REFRESH it would stick until the
+  # workspace next changed, long outliving whatever broke `but`.
+  if [ "$rc" -eq 0 ] && [ -n "${mtime:-$now}" ]; then
     { mkdir -p "$cache_root" && printf '%s\n%s' "${mtime:-$now}" "$val" > "$cache_file"; } 2>/dev/null
   fi
   printf '%s' "$val"
