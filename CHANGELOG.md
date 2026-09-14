@@ -2,7 +2,7 @@
 
 Notable changes to this project. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [semver](https://semver.org/).
 
-## [Unreleased]
+## [1.2.0] - 2026-09-14
 
 ### Fixed
 - `but` 0.22.0 renamed the status json flag from `--format json` to `--json`, so the call failed outright and every butler repo read `⧓ workspace`. Nothing announced it: the script sends `but`'s stderr to /dev/null and treats empty output as an unapplied workspace, which is the same thing it prints when you genuinely have no branches applied. The script asks for `--json` now.
@@ -40,7 +40,7 @@ Notable changes to this project. The format follows [Keep a Changelog](https://k
 - REFRESH-mtime cache keyed on the absolute gitbutler dir path, plus a `BUT_TIMEOUT` guard so a hung `but` can't stall the prompt.
 - `install.sh`, a plain-bash test suite, and an Apache 2.0 license.
 
-[Unreleased]: https://github.com/1stvamp/starship-gitbutler/compare/v1.1.1...HEAD
+[1.2.0]: https://github.com/1stvamp/starship-gitbutler/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/1stvamp/starship-gitbutler/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/1stvamp/starship-gitbutler/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/1stvamp/starship-gitbutler/releases/tag/v1.0.0
