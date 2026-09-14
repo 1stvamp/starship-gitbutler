@@ -111,13 +111,13 @@ setup_colors() {
   esac
 }
 
-# Runs `but status --format json`, bounded by a timeout so a hung `but` can't
+# Runs `but status --json`, bounded by a timeout so a hung `but` can't
 # stall the prompt. Override this function in tests to stub `but`.
 but_status_json() {
   if command -v timeout >/dev/null 2>&1; then
-    timeout "${BUT_TIMEOUT:-2}" but status --format json
+    timeout "${BUT_TIMEOUT:-2}" but status --json
   else
-    but status --format json
+    but status --json
   fi
 }
 

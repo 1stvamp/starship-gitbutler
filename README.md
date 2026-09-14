@@ -16,7 +16,7 @@ starship is one compiled binary with no plugin system, so this isn't a fork of t
 
 The script decides what to show:
 
-- butler repo (there's a `.git/gitbutler` dir *and* HEAD is on a `gitbutler/*` branch): read the applied stacks from `but status --format json`, render `⧓ name ↑N` per branch, joined with ` | `.
+- butler repo (there's a `.git/gitbutler` dir *and* HEAD is on a `gitbutler/*` branch): read the applied stacks from `but status --json`, render `⧓ name ↑N` per branch, joined with ` | `.
 - ordinary repo: fall back to `git branch`, e.g. `🌿 main` (short sha when detached).
 - not a repo: print nothing, so the segment disappears.
 
@@ -37,9 +37,11 @@ There's a 2s timeout around `but` too (override with `BUT_TIMEOUT`). If `but` ev
 ## Requirements
 
 - starship
-- the GitButler cli (`but`)
+- the GitButler cli (`but`), 0.22.0 or newer
 - jq
 - git, bash
+
+`but` 0.22.0 renamed the flag this reads the workspace through, `--format json` became `--json`, and there's no version that takes both. On anything older the read fails.
 
 It uses GNU `stat` for the cache mtime and falls back to BSD `stat -f %m`, so linux and macos both work.
 
